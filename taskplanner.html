@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modern Task Planner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f6f8;
+      color: #333; /* Default text color */
+      margin: 0;
+      padding: 20px;
+      position: relative; /* Needed for absolute positioning of icons */
+      transition: background-color 0.3s, color 0.3s; /* Smooth transition for dark mode */
+    }
+    h1 { text-align: center; color: #333; transition: color 0.3s; }
+    .selectors {
+      display: flex; justify-content: center; gap: 10px; margin-bottom: 30px;
+    }
+    select {
+      padding: 8px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #ccc;
+      background-color: #fff; color: #333; transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    }
+    .task-container {
+      display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;
+    }
+    .task-card {
+      background: #fff; padding: 20px; border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08); width: 300px; display: flex; flex-direction: column;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+    .task-card h2 {
+      margin: 0 0 10px; font-size: 20px; padding-bottom: 10px; border-bottom: 2px solid #eee;
+      transition: color 0.3s, border-color 0.3s;
+    }
+    .task-card.daily h2 { color: #2a9d8f; }
+    .task-card.monthly h2 { color: #e76f51; }
+    .task-card.yearly h2 { color: #264653; }
+
+    .task {
+      display: flex; align-items: center; gap: 6px; margin: 8px 0;
+      transition: opacity 0.3s;
+    }
+    .task.done { opacity: 0.5; text-decoration: line-through; }
+    .task input[type="text"] {
+      flex: 1; border: none; background: transparent; border-bottom: 1px solid #ddd; padding: 4px;
+      color: #333; transition: color 0.3s, border-bottom-color 0.3s;
+    }
+     .task input[type="text"]:focus {
+        outline: none;
+        border-bottom-color: #2196f3;
+     }
+    .task input[type="checkbox"] { transform: scale(1.2); }
+    .task button {
+      background: none; border: none; cursor: pointer; font-size: 16px; color: #888;
+      transition: color 0.3s;
+    }
+    .task button:hover { color: #1976d2; }
+
+    .controls {
+      margin-top: 10px; display: flex; gap: 10px;
+    }
+    .controls input {
+      flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc;
+      background-color: #fff; color: #333; transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    }
+     .controls input:focus {
+        outline: none;
+        border-color: #2196f3;
+     }
+    .controls button {
+      padding: 8px 12px; border: none; background-color: #2196f3; color: white;
+      border-radius: 6px; cursor: pointer; transition: background-color 0.3s;
+    }
+     .controls button:hover {
+        background-color: #1976d2;
+     }
+
+
+    /* Modal styles */
+    .modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center;
+      z-index: 10;
+    }
+    .modal-content {
+      background: #fff; padding: 20px; border-radius: 10px; width: 400px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+    .modal h3 { margin-top: 0; color: #333; transition: color 0.3s; }
+    .checkbox-group {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
+      color: #333; transition: color 0.3s;
+    }
+    .checkbox-group label {
+      display: flex; align-items: center; gap: 4px;
+    }
+    .modal button {
+      background: #2196f3; color: white; border: none; padding: 6px 12px;
+      border-radius: 6px; margin-top: 10px; cursor: pointer; transition: background-color 0.3s;
+    }
+     .modal button:hover {
+        background-color: #1976d2;
+     }
+    .modal .close {
+      background: none; color: #888; font-size: 18px; float: right; cursor: pointer; transition: color 0.3s;
+    }
+     .modal .close:hover {
+        color: #555;
+     }
+
+    /* Icons Container */
+    .icon-container {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        gap: 10px;
+        z-index: 5;
+    }
+
+    /* Icons */
+    .calendar-icon, .dark-mode-toggle, .all-tasks-icon {
+        font-size: 24px;
+        cursor: pointer;
+        color: #2196f3;
+        transition: color 0.3s;
+    }
+     .calendar-icon:hover, .dark-mode-toggle:hover, .all-tasks-icon:hover {
+        color: #1976d2;
+     }
+
+
+    /* Calendar Styles */
+    .calendar-modal-content {
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        width: 350px; /* Adjusted width for calendar */
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        text-align: center;
+        transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .calendar-header button {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #333;
+        padding: 5px;
+        transition: color 0.3s;
+    }
+     .calendar-header button:hover {
+        color: #1976d2;
+     }
+
+    .calendar-header h3 {
+        margin: 0;
+        font-size: 18px;
+        color: #333;
+        transition: color 0.3s;
+    }
+
+    .calendar-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #555;
+        transition: color 0.3s;
+    }
+
+    .calendar-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+    }
+
+    .calendar-day {
+        padding: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        position: relative;
+        transition: background-color 0.2s, color 0.2s;
+        font-size: 14px;
+        aspect-ratio: 1 / 1; /* Make cells square */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #333; /* Default day color */
+    }
+
+    .calendar-day:hover {
+        background-color: #e0e0e0;
+    }
+
+    .calendar-day.today {
+        background-color: #bbdefb; /* Light blue for today */
+        color: #333;
+    }
+
+    .calendar-day.selected {
+        background-color: #2196f3; /* Blue for selected date */
+        color: white;
+    }
+
+     .calendar-day.has-task::after {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background-color: blue;
+        border-radius: 50%;
+        position: absolute;
+        bottom: 3px;
+        left: 50%;
+        transform: translateX(-50%);
+     }
+
+     .calendar-day.other-month {
+        color: #ccc; /* Dim dates from other months */
+     }
+
+    /* All Tasks Modal Styles */
+    .all-tasks-modal-content {
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        width: 90%; /* Adjusted width for task list */
+        max-width: 600px; /* Max width for larger screens */
+        max-height: 80vh; /* Limit height to prevent overflow */
+        overflow-y: auto; /* Add scrolling if list is long */
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    .all-tasks-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .all-tasks-list li {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        text-align: left;
+        transition: background-color 0.2s;
+    }
+    .all-tasks-list li:last-child {
+        border-bottom: none;
+    }
+    .all-tasks-list li:hover {
+        background-color: #f0f0f0;
+    }
+
+    .all-tasks-list li span {
+        font-weight: bold;
+        margin-right: 10px;
+    }
+
+
+    /* --- Dark Mode Styles --- */
+    body.dark-mode {
+        background-color: #1e1e1e;
+        color: #eee;
+    }
+    body.dark-mode h1 {
+        color: #eee;
+    }
+    body.dark-mode select {
+        background-color: #333;
+        color: #eee;
+        border-color: #555;
+    }
+    body.dark-mode .task-card {
+        background: #2d2d2d;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+     body.dark-mode .task-card h2 {
+        border-bottom-color: #555;
+     }
+    body.dark-mode .task input[type="text"] {
+        color: #eee;
+        border-bottom-color: #555;
+    }
+     body.dark-mode .task input[type="text"]:focus {
+        border-bottom-color: #2196f3;
+     }
+    body.dark-mode .task button {
+        color: #bbb;
+    }
+     body.dark-mode .task button:hover {
+        color: #eee;
+     }
+    body.dark-mode .controls input {
+        background-color: #333;
+        color: #eee;
+        border-color: #555;
+    }
+     body.dark-mode .controls input:focus {
+        border-color: #2196f3;
+     }
+    body.dark-mode .controls button {
+        background-color: #0f4c75;
+     }
+     body.dark-mode .controls button:hover {
+        background-color: #1976d2;
+     }
+    body.dark-mode .modal-content,
+    body.dark-mode .calendar-modal-content,
+    body.dark-mode .all-tasks-modal-content {
+        background: #2d2d2d;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    body.dark-mode .modal h3,
+    body.dark-mode .calendar-header h3,
+    body.dark-mode .checkbox-group {
+        color: #eee;
+    }
+    body.dark-mode .modal .close {
+        color: #bbb;
+    }
+     body.dark-mode .modal .close:hover {
+        color: #eee;
+     }
+    body.dark-mode .calendar-header button {
+        color: #bbb;
+    }
+     body.dark-mode .calendar-header button:hover {
+        color: #eee;
+     }
+    body.dark-mode .calendar-weekdays {
+        color: #bbb;
+    }
+    body.dark-mode .calendar-day {
+        color: #eee;
+    }
+    body.dark-mode .calendar-day:hover {
+        background-color: #3d3d3d;
+    }
+     body.dark-mode .calendar-day.today {
+        background-color: #003f5c; /* Darker blue for today */
+        color: #eee;
+     }
+    body.dark-mode .calendar-day.selected {
+        background-color: #2196f3;
+        color: white;
+     }
+     body.dark-mode .calendar-day.has-task::after {
+        background-color: #7fffd4; /* Aqua color for task dot in dark mode */
+     }
+     body.dark-mode .calendar-day.other-month {
+        color: #777;
+     }
+     body.dark-mode .calendar-icon,
+     body.dark-mode .dark-mode-toggle,
+     body.dark-mode .all-tasks-icon {
+        color: #7fffd4; /* Aqua color for icons in dark mode */
+     }
+      body.dark-mode .calendar-icon:hover,
+      body.dark-mode .dark-mode-toggle:hover,
+      body.dark-mode .all-tasks-icon:hover {
+         color: #aaffdd;
+      }
+    body.dark-mode .all-tasks-list li {
+        border-bottom-color: #555;
+        color: #eee;
+    }
+     body.dark-mode .all-tasks-list li:hover {
+        background-color: #3d3d3d;
+     }
+
+
+  </style>
+</head>
+<body>
+
+<h1>Task Planner</h1>
+
+<div class="icon-container">
+    <div class="dark-mode-toggle" id="darkModeToggle">☀️</div> <div class="calendar-icon" id="calendarIcon">📅</div>
+    <div class="all-tasks-icon" id="allTasksIcon">📋</div> </div>
+
+
+<div class="selectors">
+  <select id="daySelect"></select>
+  <select id="monthSelect"></select>
+  <select id="yearSelect"></select>
+</div>
+<div class="task-container">
+  <div class="task-card daily">
+    <h2>Daily Tasks</h2>
+    <div class="controls">
+      <input type="text" id="dailyInput" placeholder="New task" onkeydown="if(event.key==='Enter') addTask('daily')">
+      <button onclick="addTask('daily')">Add</button>
+    </div>
+    <div id="dailyTasks"></div>
+  </div>
+  <div class="task-card monthly">
+    <h2>Monthly Tasks</h2>
+    <div class="controls">
+      <input type="text" id="monthlyInput" placeholder="New task" onkeydown="if(event.key==='Enter') addTask('monthly')">
+      <button onclick="addTask('monthly')">Add</button>
+    </div>
+    <div id="monthlyTasks"></div>
+  </div>
+  <div class="task-card yearly">
+    <h2>Yearly Tasks</h2>
+    <div class="controls">
+      <input type="text" id="yearlyInput" placeholder="New task" onkeydown="if(event.key==='Enter') addTask('yearly')">
+      <button onclick="addTask('yearly')">Add</button>
+    </div>
+    <div id="yearlyTasks"></div>
+  </div>
+</div>
+
+<div class="modal" id="repeatModal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('repeatModal')">✖</span>
+    <h3>Repeat Task</h3>
+    <div class="checkbox-group" id="weekdaySelect"></div>
+    <div class="checkbox-group" id="monthRepeatSelect"></div>
+    <button onclick="applyRepeat()">Repeat</button>
+  </div>
+</div>
+
+<div class="modal" id="remarkModal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('remarkModal')">✖</span>
+    <h3>Add Remark</h3>
+    <input type="text" id="remarkInput" placeholder="Enter remark" onkeydown="if(event.key==='Enter'){saveRemark()}" />
+    <button onclick="saveRemark()">Save</button>
+  </div>
+</div>
+
+<div class="modal" id="calendarModal">
+    <div class="calendar-modal-content">
+        <span class="close" onclick="closeModal('calendarModal')">✖</span>
+        <div class="calendar-header">
+            <button id="prevMonth">&lt;</button>
+            <h3 id="currentMonthYear"></h3>
+            <button id="nextMonth">&gt;</button>
+        </div>
+        <div class="calendar-weekdays">
+            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div class="calendar-days" id="calendarDays">
+            </div>
+    </div>
+</div>
+
+<div class="modal" id="allTasksModal">
+    <div class="all-tasks-modal-content">
+        <span class="close" onclick="closeModal('allTasksModal')">✖</span>
+        <h3>All Tasks for <span id="allTasksYear"></span></h3>
+        <ul class="all-tasks-list" id="allTasksList">
+            </ul>
+    </div>
+</div>
+
+
+<script>
+  const daySelect = document.getElementById('daySelect');
+  const monthSelect = document.getElementById('monthSelect');
+  const yearSelect = document.getElementById('yearSelect');
+  const weekdays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let repeatTaskObj = null;
+  let remarkTaskObj = null;
+
+  // Calendar variables
+  const calendarIcon = document.getElementById('calendarIcon');
+  const calendarModal = document.getElementById('calendarModal');
+  const currentMonthYearHeader = document.getElementById('currentMonthYear');
+  const calendarDaysContainer = document.getElementById('calendarDays');
+  const prevMonthBtn = document.getElementById('prevMonth');
+  const nextMonthBtn = document.getElementById('nextMonth');
+
+  let currentCalendarDate = new Date(); // Date object to track the currently displayed month/year in calendar
+
+  // Dark Mode variables
+  const darkModeToggle = document.getElementById('darkModeToggle');
+  const body = document.body;
+  const darkModeStorageKey = 'darkModeEnabled';
+
+  // All Tasks variables
+  const allTasksIcon = document.getElementById('allTasksIcon');
+  const allTasksModal = document.getElementById('allTasksModal');
+  const allTasksYearHeader = document.getElementById('allTasksYear');
+  const allTasksListContainer = document.getElementById('allTasksList');
+
+
+  function populateSelectors() {
+    for (let d = 1; d <= 31; d++) daySelect.innerHTML += `<option value="${d}">${d}</option>`;
+    months.forEach((month, i) => monthSelect.innerHTML += `<option value="${i}">${month}</option>`);
+    const yearNow = new Date().getFullYear();
+    for (let y = yearNow - 5; y <= yearNow + 5; y++) yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+    const today = new Date();
+    daySelect.value = today.getDate();
+    monthSelect.value = today.getMonth();
+    yearSelect.value = today.getFullYear();
+  }
+
+  function getKey(scope, y, m, d) {
+    // Ensure month and day are zero-padded strings for consistent keys
+    const paddedMonth = m !== undefined ? String(m).padStart(2, '0') : '';
+    const paddedDay = d !== undefined ? String(d).padStart(2, '0') : '';
+
+    if (scope === 'daily') return `daily-${y}-${paddedMonth}-${paddedDay}`;
+    if (scope === 'monthly') return `monthly-${y}-${paddedMonth}`;
+    return `yearly-${y}`;
+  }
+
+  function getTasks(scope, y, m, d) {
+    const key = getKey(scope, y, m, d);
+    return JSON.parse(localStorage.getItem(key)) || [];
+  }
+
+  function saveTasks(scope, tasks, y, m, d) {
+    const key = getKey(scope, y, m, d);
+    localStorage.setItem(key, JSON.stringify(tasks));
+    // After saving, re-render the calendar to update task dots and the all tasks list
+    renderCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+    renderAllTasks(); // Update all tasks list
+  }
+
+  function renderTasks(scope) {
+    const container = document.getElementById(`${scope}Tasks`);
+    container.innerHTML = '';
+    const y = yearSelect.value;
+    const m = String(monthSelect.value).padStart(2,'0');
+    const d = String(daySelect.value).padStart(2,'0');
+    const tasks = getTasks(scope, y, m, d);
+    tasks.forEach((task, i) => {
+      const div = document.createElement('div');
+      div.className = `task ${task.done ? 'done' : ''}`;
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = task.done;
+      cb.onchange = () => { task.done = cb.checked; saveTasks(scope, tasks, y, m, d); renderTasks(scope); };
+      const input = document.createElement('input');
+      input.type = 'text'; input.value = task.text;
+      input.onchange = () => { task.text = input.value; saveTasks(scope, tasks, y, m, d); };
+      const repeatBtn = document.createElement('button'); repeatBtn.textContent = '🔁'; repeatBtn.title = 'Repeat';
+      repeatBtn.onclick = () => { repeatTaskObj = { scope, text: task.text }; openModal('repeatModal'); };
+      const remarkBtn = document.createElement('button'); remarkBtn.textContent = '📝'; remarkBtn.title = 'Remark';
+      remarkBtn.onclick = () => { remarkTaskObj = { scope, index: i, year: y, month: m, day: d }; document.getElementById('remarkInput').value = task.remark || ''; openModal('remarkModal'); };
+      const delBtn = document.createElement('button'); delBtn.textContent = '❌';
+      delBtn.onclick = () => { if (confirm("Delete this task?")) { tasks.splice(i, 1); saveTasks(scope, tasks, y, m, d); renderTasks(scope); } };
+      div.append(cb, input, repeatBtn, remarkBtn, delBtn);
+      container.append(div);
+    });
+  }
+
+  function addTask(scope) {
+    const input = document.getElementById(`${scope}Input`);
+    const text = input.value.trim(); if (!text) return;
+    const y = yearSelect.value, m = String(monthSelect.value).padStart(2,'0'), d = String(daySelect.value).padStart(2,'0');
+    const tasks = getTasks(scope, y, m, d);
+    tasks.push({ text, done: false, remark: '' }); saveTasks(scope, tasks, y, m, d);
+    input.value = ''; renderTasks(scope);
+  }
+
+  function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+  function applyRepeat() {
+    const year = +yearSelect.value;
+    const days = [...document.querySelectorAll('#weekdaySelect input:checked')].map(i => i.value);
+    const monthsToRepeat = [...document.querySelectorAll('#monthRepeatSelect input:checked')].map(i => +i.value); // Renamed to avoid conflict
+    monthsToRepeat.forEach(m => {
+      const daysInMonth = new Date(year, m + 1, 0).getDate();
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, m, d);
+        if (days.includes(weekdays[date.getDay()])) {
+          const keyM = String(m).padStart(2, '0');
+          const keyD = String(d).padStart(2, '0');
+          const tasks = getTasks('daily', year, keyM, keyD);
+          // Prevent adding duplicate tasks if repeating to a date that already has it
+          const taskExists = tasks.some(task => task.text === repeatTaskObj.text);
+          if (!taskExists) {
+             tasks.push({ text: repeatTaskObj.text, done: false, remark: '' });
+             saveTasks('daily', tasks, year, keyM, keyD);
+          }
+        }
+      }
+    });
+    closeModal('repeatModal');
+    loadAllTasks(); // Reload tasks for the current view and update calendar/all tasks
+  }
+
+  function saveRemark() {
+    const { scope, index, year, month, day } = remarkTaskObj;
+    const tasks = getTasks(scope, year, month, day);
+    tasks[index].remark = document.getElementById('remarkInput').value;
+    saveTasks(scope, tasks, year, month, day);
+    closeModal('remarkModal');
+    renderTasks(scope);
+    renderAllTasks(); // Update all tasks list
+  }
+
+  function loadAllTasks() {
+      ['daily', 'monthly', 'yearly'].forEach(renderTasks);
+      // Update the calendar view and all tasks list to reflect any changes
+      renderCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+      renderAllTasks();
+  }
+
+  // --- Calendar Functions ---
+
+  function renderCalendar(year, month) {
+    calendarDaysContainer.innerHTML = '';
+    currentMonthYearHeader.textContent = `${months[month]} ${year}`;
+
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const today = new Date();
+    const selectedDate = new Date(+yearSelect.value, +monthSelect.value, +daySelect.value);
+
+    // Calculate the day of the week for the first day of the month (0 for Sunday, 6 for Saturday)
+    const firstDayOfWeek = firstDayOfMonth.getDay();
+
+    // Calculate the number of days from the previous month to display
+    const daysFromPrevMonth = firstDayOfWeek;
+
+    // Calculate the number of days in the previous month
+    const lastDayOfPrevMonth = new Date(year, month, 0).getDate();
+
+    // Add days from the previous month
+    for (let i = daysFromPrevMonth - 1; i >= 0; i--) {
+        const day = lastDayOfPrevMonth - i;
+        const dayElement = document.createElement('div');
+        dayElement.classList.add('calendar-day', 'other-month');
+        dayElement.textContent = day;
+        calendarDaysContainer.appendChild(dayElement);
+    }
+
+
+    // Add days of the current month
+    for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+      const dayElement = document.createElement('div');
+      dayElement.classList.add('calendar-day');
+      dayElement.textContent = day;
+
+      const currentDate = new Date(year, month, day);
+
+      // Check if it's today
+      if (currentDate.toDateString() === today.toDateString()) {
+          dayElement.classList.add('today');
+      }
+
+      // Check if it's the currently selected date in the main view
+      if (currentDate.toDateString() === selectedDate.toDateString()) {
+          dayElement.classList.add('selected');
+      }
+
+      // Check for tasks on this date (daily tasks only for the dot indicator)
+      const dailyTasks = getTasks('daily', year, month, day);
+      if (dailyTasks.length > 0) {
+          dayElement.classList.add('has-task');
+      }
+
+      // Add click listener to select the date
+      dayElement.addEventListener('click', () => {
+          daySelect.value = day;
+          monthSelect.value = month;
+          yearSelect.value = year;
+          loadAllTasks(); // Load tasks for the selected date
+          closeModal('calendarModal'); // Close the calendar modal
+      });
+
+      calendarDaysContainer.appendChild(dayElement);
+    }
+
+    // Add days from the next month to fill the grid
+    const totalDaysDisplayed = daysFromPrevMonth + lastDayOfMonth.getDate();
+    const daysToDisplayNextMonth = 42 - totalDaysDisplayed; // Display up to 6 weeks (6 * 7 = 42 cells)
+
+     for (let i = 1; i <= daysToDisplayNextMonth; i++) {
+        const dayElement = document.createElement('div');
+        dayElement.classList.add('calendar-day', 'other-month');
+        dayElement.textContent = i;
+        calendarDaysContainer.appendChild(dayElement);
+     }
+  }
+
+  // Event listeners for calendar navigation
+  prevMonthBtn.addEventListener('click', () => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+    renderCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+  });
+
+  nextMonthBtn.addEventListener('click', () => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+    renderCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+  });
+
+  // Event listener for the calendar icon
+  calendarIcon.addEventListener('click', () => {
+      // When opening the calendar, set it to the currently selected date in the main view
+      currentCalendarDate = new Date(+yearSelect.value, +monthSelect.value, +daySelect.value);
+      renderCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+      openModal('calendarModal');
+  });
+
+  // --- Dark Mode Functions ---
+
+  function enableDarkMode() {
+      body.classList.add('dark-mode');
+      darkModeToggle.textContent = '🌙'; // Moon icon for dark mode
+      localStorage.setItem(darkModeStorageKey, 'enabled');
+  }
+
+  function disableDarkMode() {
+      body.classList.remove('dark-mode');
+      darkModeToggle.textContent = '☀️'; // Sun icon for light mode
+      localStorage.setItem(darkModeStorageKey, 'disabled');
+  }
+
+  function toggleDarkMode() {
+      if (body.classList.contains('dark-mode')) {
+          disableDarkMode();
+      } else {
+          enableDarkMode();
+      }
+  }
+
+  // Event listener for dark mode toggle
+  darkModeToggle.addEventListener('click', toggleDarkMode);
+
+  // --- All Tasks Functions ---
+
+  function renderAllTasks() {
+      allTasksListContainer.innerHTML = '';
+      const currentYear = yearSelect.value;
+      allTasksYearHeader.textContent = currentYear;
+
+      const allTasksForYear = [];
+
+      // Iterate through localStorage keys to find tasks for the current year
+      for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith(`daily-${currentYear}-`) || key.startsWith(`monthly-${currentYear}-`) || key.startsWith(`yearly-${currentYear}`)) {
+              const tasks = JSON.parse(localStorage.getItem(key));
+              if (tasks && tasks.length > 0) {
+                  const keyParts = key.split('-');
+                  const scope = keyParts[0];
+                  const year = parseInt(keyParts[1], 10);
+                  const month = keyParts[2] ? parseInt(keyParts[2], 10) : undefined; // Month is 0-indexed
+                  const day = keyParts[3] ? parseInt(keyParts[3], 10) : undefined;
+
+                  tasks.forEach(task => {
+                      allTasksForYear.push({
+                          scope,
+                          year: year,
+                          month: month,
+                          day: day,
+                          text: task.text,
+                          done: task.done
+                      });
+                  });
+              }
+          }
+      }
+
+      // Sort tasks by date (Year, then Month, then Day)
+      allTasksForYear.sort((a, b) => {
+          if (a.year !== b.year) return a.year - b.year;
+          if (a.month !== undefined && b.month !== undefined) {
+              if (a.month !== b.month) return a.month - b.month;
+          } else if (a.month !== undefined) {
+              return -1; // Monthly/Daily tasks before Yearly tasks
+          } else if (b.month !== undefined) {
+              return 1; // Yearly tasks after Monthly/Daily tasks
+          }
+
+          if (a.day !== undefined && b.day !== undefined && a.day !== b.day) return a.day - b.day;
+          return 0; // Maintain relative order if dates are the same
+      });
+
+
+      if (allTasksForYear.length === 0) {
+          const listItem = document.createElement('li');
+          listItem.textContent = 'No tasks found for this year.';
+          allTasksListContainer.appendChild(listItem);
+          return;
+      }
+
+      // Render sorted tasks
+      allTasksForYear.forEach(task => {
+          const listItem = document.createElement('li');
+          let dateString = '';
+          if (task.scope === 'daily') {
+              dateString = `${task.day} ${months[task.month]} ${task.year}`;
+          } else if (task.scope === 'monthly') {
+              dateString = `${months[task.month]} ${task.year}`;
+          } else { // Yearly
+              dateString = `${task.year}`;
+          }
+
+          listItem.innerHTML = `<span>${dateString}:</span> ${task.text}`;
+          if (task.done) {
+              listItem.style.textDecoration = 'line-through';
+              listItem.style.opacity = '0.7';
+          }
+
+          // Add click listener to navigate to the task's date
+          listItem.addEventListener('click', () => {
+              if (task.day !== undefined) daySelect.value = task.day;
+              if (task.month !== undefined) monthSelect.value = task.month;
+              yearSelect.value = task.year;
+              loadAllTasks(); // Load tasks for the selected date
+              closeModal('allTasksModal'); // Close the all tasks modal
+          });
+
+          allTasksListContainer.appendChild(listItem);
+      });
+  }
+
+  // Event listener for the all tasks icon
+  allTasksIcon.addEventListener('click', () => {
+      renderAllTasks(); // Render tasks before opening the modal
+      openModal('allTasksModal');
+  });
+
+
+  // Initial setup
+  populateSelectors();
+  [daySelect, monthSelect, yearSelect].forEach(sel => sel.onchange = loadAllTasks);
+
+  window.onload = () => {
+    // Apply saved dark mode preference on load
+    if (localStorage.getItem(darkModeStorageKey) === 'enabled') {
+        enableDarkMode();
+    } else {
+        disableDarkMode(); // Ensure light mode is applied if no preference or disabled
+    }
+
+    weekdays.forEach(d => document.getElementById('weekdaySelect').innerHTML += `<label><input type="checkbox" value="${d}"/> ${d}</label>`);
+    months.forEach((m, i) => document.getElementById('monthRepeatSelect').innerHTML += `<label><input type="checkbox" value="${i}"/> ${m}</label>`);
+    loadAllTasks(); // Initial load of tasks (also renders calendar and all tasks)
+  };
+</script>
+
+</body>
+</html>
